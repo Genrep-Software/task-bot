@@ -8,6 +8,7 @@
 # https://github.com/Genrep-Software/task-bot
 
 import json
+import time
 from dataclasses import dataclass
 from typing import Dict
 
@@ -51,13 +52,15 @@ class GroupmeBot(object):
     def send(self, msg: str) -> None:
         """
         Send a message from the bot in the group.
-        :param msg: Message to send; only sends the first 998 characters of msg
+        :param msg: Message to send; cuts into substrings of length 998
         """
-        data = {
-            "bot_id": self.bot_id,
-            "text": msg,
-        }
-        requests.post(GroupmeBot.POST_URL, json=data)
+        for substr in [msg[i:(i+998)] for i in range(0, len(msg), 998)]:
+            data = {
+                "bot_id": self.bot_id,
+                "text": substr,
+            }
+            requests.post(GroupmeBot.POST_URL, json=data)
+            time.sleep(0.5)
 
 
 ################################################################################
