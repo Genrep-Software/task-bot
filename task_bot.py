@@ -10,9 +10,11 @@
 import json
 import time
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Dict
 
 import requests
+from dateutil.parser import isoparse
 
 
 ################################################################################
@@ -78,9 +80,16 @@ class Airtable(object):
         self.get_records()
 
     def get_records(self, view: str = "Bot") -> None:
+        """
+        Retrieve up to the first 100 records from a specific Airtable view and
+        deserialize them. Stores in the self.records dictionary with keys as
+        task assignee and values as lists of tasks.
+        :param view: Airtable "view" to retrieve tasks from
+        """
         # Get the first 100 records from the task list
         params = tuple({
             "view": view,
+            # "timeZone": "America/New_York",
         }.items())
         with self.session.get(self.api_url, params=params) as r:
             records = map(lambda i: i.get("fields"), r.json().get("records"))
@@ -97,6 +106,37 @@ class Airtable(object):
                 self.records[assigned_to] = []
             self.records.get(assigned_to).append(record)
 
+    def generate_tasks_list(self) -> str:
+        """
+        Generate a string representation of the task list that can be sent via
+        GroupMe. Uses the following style:
+
+        Name
+        - (Task priority) Task name: task due date - days left until due
+        - ...
+        :return: string representation of the list of retrieved records
+        """
+        output = ""
+        for person, tasks in self.records.items():
+            output += f"{person}:\n"
+            for task in tasks:
+                priority = task.get("Priority", "")
+                name = task.get("Task", "")
+                due = isoparse(task.get("Date Due")).date()
+                due_str = due.strftime("%A, %B %d, %Y")
+                diff = (due - datetime.now().date())
+                if diff.days < 0:
+                    diff_str = "LATE"
+                elif diff.days == 0:
+                    diff_str = "Today"
+                elif diff.days == 1:
+                    diff_str = "1 day"
+                else:
+                    diff_str = f"{diff.days} day{'s' if diff.days > 1 else ''}"
+                output += f"- ({priority}) {name}: {due_str} - {diff_str}\n"
+            output += "\n"
+        return output.strip()
+
 
 ################################################################################
 # Main Function
@@ -105,13 +145,14 @@ class Airtable(object):
 def main():
     keys = load_api_keys("api_keys.json")
     bot = GroupmeBot(keys.get("bot_id"))
-    # try:
-    table = Airtable(keys.get("airtable_api_key"), keys.get("airtable_api_url"))
-    print(json.dumps(table.records, indent=2))
-    """
+    # For debugging locally
+    # bot.send = print
+    try:
+        table = Airtable(keys.get("airtable_api_key"),
+                         keys.get("airtable_api_url"))
+        bot.send(table.generate_tasks_list())
     except Exception as e:
         bot.send(str(e))
-    """
 
 
 if __name__ == "__main__":
