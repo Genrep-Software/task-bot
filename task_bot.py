@@ -7,6 +7,7 @@
 # Copyright (c) 2020 Genrep Software, LLC.
 # https://github.com/Genrep-Software/task-bot
 
+import argparse
 import json
 import time
 from dataclasses import dataclass
@@ -142,8 +143,8 @@ class Airtable(object):
 # Main Function
 ################################################################################
 
-def main():
-    keys = load_api_keys("api_keys.json")
+def main(api_keys):
+    keys = load_api_keys(api_keys)
     bot = GroupmeBot(keys.get("bot_id"))
     # For debugging locally
     # bot.send = print
@@ -156,4 +157,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    argparser = argparse.ArgumentParser(description="Send a message with tasks")
+    argparser.add_argument("api_keys", help="File path of api_keys.json")
+    args = argparser.parse_args()
+    main(args.api_keys)
