@@ -26,6 +26,12 @@ dictionary, filling in your own values where appropriate:
 }
 ```
 
-To install, run `make install` from the command line. This will first use `pip`
+To install, run
+
+```
+make install
+```
+
+from the command line. This will first use `pip`
 in Python 3 to install the requirements. Then, it will add a line to the system
 `crontab` to run the file daily at 9:00am.
